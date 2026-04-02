@@ -22,7 +22,7 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         goos: ${{ matrix.goos }}
         goarch: ${{ matrix.goarch }}
-        goversion: "1.21"
+        goversion: "1.25"
         project_path: "."
         binary_name: "shhgit"
         extra_files: LICENSE README.md
