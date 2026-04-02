@@ -132,7 +132,11 @@ Vercel, Supabase PAT, PlanetScale, Turso, Fly.io, Railway, Cloudflare API Token,
 - `aria-expanded` on mobile menu toggle
 - 0 console errors
 
-### Infrastructure
+### Dependencies & Infrastructure
+- Go upgraded from 1.21 to 1.25
+- All vulnerable dependencies updated: go-git v5.11 to v5.17, x/crypto v0.18 to v0.49, x/net v0.20 to v0.52, x/oauth2 v0.16 to v0.36, circl v1.3 to v1.6, protobuf v1.31 to v1.36
+- Resolves 17 Dependabot alerts (2 Critical, 4 High, 8 Moderate, 3 Low)
+- GitHub Actions workflows: `permissions` added (least privilege), actions pinned to v4/v5, arm64 release builds
 - Polling-based frontend (replaced PushStream/EventSource)
 - Duplicate match filtering on both backend and frontend
 - Nginx access/error logging enabled
