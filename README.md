@@ -5,38 +5,9 @@
 
 ## **Find secrets in real time across GitHub, GitLab and BitBucket — before they lead to a security breach.**
 
-> This is a maintained fork of the original [eth0izzle/shhgit](https://github.com/eth0izzle/shhgit) which is no longer maintained. This fork includes security hardening, bug fixes, modern UI, and improved deployment.
+> This is a maintained fork of the original [eth0izzle/shhgit](https://github.com/eth0izzle/shhgit) which is no longer maintained. This fork includes 300+ detection signatures, security hardening, a modern dashboard, and production-ready deployment.
 
 </p>
-
-## What's Changed in This Fork
-
-Compared to the original project, this fork brings:
-
-**Security**
-- XSS protection — all match data is sanitized both on backend (`html.EscapeString`) and frontend (`escapeHtml`)
-- `/push` endpoint restricted to internal Docker network only (no external write access)
-- Content Security Policy, X-Frame-Options, X-Content-Type-Options headers added to Nginx
-- CORS wildcard removed from `/matches.jsonl`
-- Docker containers run as non-root with `no-new-privileges` and `cap_drop: ALL`
-- GitHub tokens moved to `.env` file (out of config.yaml)
-- Push server hardened: request size limits, file locking, no error detail leakage
-
-**Bug Fixes**
-- Fixed `http.Post()` response body leak in publish function
-- Fixed `context.WithTimeout` leak in goroutine (deferred cancel never executed)
-- Fixed `ProcessComments` missing `defer os.RemoveAll` (temp files left on disk after panic)
-- Fixed frontend source enum mapping (was off by one — Local, GitHub Comment missing)
-- Removed deprecated `rand.Seed` (Go 1.20+)
-- Regex search query now compiled once at startup instead of per-file
-
-**Improvements**
-- Polling-based frontend (replaces PushStream/EventSource dependency)
-- Duplicate match filtering on both backend and frontend
-- Blacklist filtering applied before publishing events
-- High-entropy strings classified as "API Key" when context keywords found
-- Nginx access/error logging enabled for audit trail
-- Comment temp files written with `0600` permissions instead of `0644`
 
 ---
 
@@ -87,22 +58,98 @@ go build -o shhgit .
 
 ## Features
 
-- **Real-time scanning** — monitors GitHub events, Gists, and comments as they happen
-- **800+ signatures** — API keys, tokens, private keys, credentials, database files, and more
-- **Modern dashboard** — responsive UI with live updates, filtering, and notifications
+- **Real-time scanning** — monitors GitHub events, Gists, and issue comments as they happen
+- **300 detection signatures** — API keys, tokens, private keys, credentials, database files, cloud secrets, and more
+- **Modern dashboard** — responsive UI with live updates, signature filtering, match counts, and browser notifications
 - **Local mode** — scan local directories, integrate into CI pipelines
 - **Custom search** — use regex to find specific patterns: `--search-query AWS_ACCESS_KEY_ID=AKIA`
 - **Webhook support** — POST match events to Slack, Mattermost, or any HTTP endpoint
 - **CSV export** — write findings to CSV for further analysis
+- **Security hardened** — XSS protection, CSP headers, non-root Docker, SRI integrity checks
+
+## Signature Coverage
+
+300 signatures organized across these categories:
+
+| Category | Count | Examples |
+|----------|-------|---------|
+| API Keys & Tokens | 80+ | OpenAI, Anthropic, Groq, Mistral, Stripe, SendGrid, Twilio |
+| Cloud Infrastructure | 25+ | AWS (Access Key, Secret, Session, RDS, S3), Azure, GCP, Supabase, Cloudflare |
+| Modern DevOps | 30+ | Vercel, PlanetScale, Turso, Fly.io, Railway, Neon, Terraform, Tailscale |
+| Package Registries | 5+ | npm, PyPI, RubyGems |
+| Developer Tools | 15+ | GitHub (PAT, fine-grained, ghu_, ghs_, gho_, ghr_), GitLab, Postman, Figma, Databricks |
+| Monitoring | 5+ | Grafana Cloud, Grafana Service Account, Doppler |
+| SSH/Crypto Keys | 45+ | PEM, PKCS12, PFX, RSA, DSA, ED25519, ECDSA, PGP |
+| Database Credentials | 30+ | PostgreSQL, MySQL, MongoDB, Redis, Elasticsearch, Neon connection strings |
+| Config Files | 40+ | .env, .npmrc, .bashrc, database.yml, wp-config.php, Django settings |
+| Authentication | 25+ | OAuth, JWT, Bearer tokens, Session IDs, CSRF tokens |
+
+### Recently Added (2024-2025 services)
+
+Vercel, Supabase PAT, PlanetScale, Turso, Fly.io, Railway, Cloudflare API Token, Neon DB, OpenAI Service Account (`sk-svcacct-`), xAI/Grok (`xai-`), npm, PyPI, RubyGems, Postman, Pulumi, Databricks, Figma, Sourcegraph, Grafana Cloud, Doppler, Terraform Cloud, Tailscale, Deno Deploy, Resend, Infracost, Prefect, Buildkite
+
+---
+
+## What's Changed in This Fork
+
+### Security Hardening
+- XSS protection — all match data sanitized on backend (`html.EscapeString`) and frontend (`escapeHtml`)
+- `/push` endpoint restricted to internal Docker network only
+- Content Security Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy headers
+- SRI integrity hashes on all third-party scripts and stylesheets
+- CORS wildcard removed from `/matches.jsonl`
+- Docker containers run as non-root with `no-new-privileges` and `cap_drop: ALL`
+- GitHub tokens moved to `.env` file (never committed to repo)
+- Push server hardened: 64KB request limit, file locking, no error detail leakage
+
+### Bug Fixes
+- Fixed `http.Post()` response body leak in publish function
+- Fixed `context.WithTimeout` leak in goroutine (deferred cancel never executed)
+- Fixed `ProcessComments` missing `defer os.RemoveAll` (temp files left on disk after panic)
+- Fixed frontend source enum mapping (Local, GitHub Comment were missing)
+- Removed deprecated `rand.Seed` (Go 1.20+)
+- Regex search query compiled once at startup instead of per-file (`regexp.Compile` vs `MustCompile`)
+- Removed duplicate Twilio signature
+
+### Signature Improvements
+- Added 33 new high-confidence prefix-based signatures (see list above)
+- Added 4 missing GitHub token variants (`ghu_`, `ghs_`, `gho_`, `ghr_`)
+- Reduced false positives: Session ID min length 10 to 20, OAuth Client ID min 10 to 30, Base64 entropy min 40 to 60
+- Blacklist filtering applied before publishing events
+- High-entropy strings classified as "API Key" when context keywords found
+
+### Frontend & Dashboard
+- Bulma CSS removed (unused 200KB dependency)
+- Modern, accessible UI with WCAG 2.2 compliance
+- Skip-to-content link for keyboard navigation
+- ARIA labels, roles, and live regions throughout
+- SRI integrity verified third-party assets
+- Non-render-blocking font loading
+- Row fade-in animations with `prefers-reduced-motion` support
+- Empty state and loading indicators
+- Gradient-coded signature badges (top 5 ranked by count)
+- Print stylesheet
+- `aria-expanded` on mobile menu toggle
+- 0 console errors
+
+### Infrastructure
+- Polling-based frontend (replaced PushStream/EventSource)
+- Duplicate match filtering on both backend and frontend
+- Nginx access/error logging enabled
+- Comment temp files written with `0600` permissions
+- Alpine 3.19 pinned (not `latest`)
+- `docker-compose.yml` with `security_opt` and `cap_drop`
+
+---
 
 ## Architecture
 
 ```
 [GitHub/GitLab/BitBucket Events]
          |
-    [shhgit-app]          Go backend — clones repos, scans files, matches signatures
+    [shhgit-app]          Go backend — clones repos, scans files, matches 300 signatures
          |
-    HTTP POST /push
+    HTTP POST /push       (restricted to Docker internal network)
          |
     [shhgit-www]          Nginx + Python push server
          |
