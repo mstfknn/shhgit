@@ -27,8 +27,8 @@
         <link rel="stylesheet" href="/style.css" />
 
         <!-- Third-party CSS with media hints -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl0HPNiecjHG182/lFXflzv5QKFP+dMPnO+VAwGM5sE+Yf0F9G2FxAdFAGTJ+kNfKfMcP6liwXwGA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-        <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" media="print" id="google-fonts" />
         <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" /></noscript>
 
         <!-- Favicon -->
@@ -143,8 +143,8 @@
             </main>
         </div>
 
-        <!-- Scripts deferred for performance -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.min.js" integrity="sha512-FLHbpiYSBOTKtG/4wHY88+5mMsDbxOBKO0FJKm5jGBNnDnic6ZhqBSMOYmVDIkMHEFXKPDJVDjN8BIjK9kxIg==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+        <!-- CryptoJS must load before script.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.min.js" integrity="sha512-Zl1k/bs5R0zzwAw+kxzMh4HjpC2Y2fy8Qu8xoUUA4mXTYtgq6oWtLUUMSRiaJZ/hH0hwE7locgWLozvskZrnvw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
         <script src="/script.js" defer></script>
     </body>
 </html>

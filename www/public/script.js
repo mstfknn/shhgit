@@ -1144,6 +1144,10 @@ Authors: Wandenberg Peixoto <wandenberg@gmail.com>, Rogério Carvalho Schneider 
   
 })(window, document);
   
+// Activate Google Fonts (loaded with media="print" to avoid render blocking)
+var fontsLink = document.getElementById('google-fonts');
+if (fontsLink) fontsLink.media = 'all';
+
 // shhgit
 document.addEventListener('DOMContentLoaded', function(event) {
     window.connection = null;
