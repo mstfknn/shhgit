@@ -1,13 +1,16 @@
-version: '2.4'
+version: '3.8'
 
 services:
   shhgit-www:
     build: ./www
     container_name: shhgit.www
     ports:
-      - 8080:80 # if you change your local port update public/script.js:1273
+      - "8080:80"
     volumes:
       - ./www/public:/usr/share/nginx/html:ro
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
 
   shhgit-app:
     build: ./
@@ -15,5 +18,12 @@ services:
     entrypoint: ["/app/shhgit", "--live=http://shhgit-www/push"]
     depends_on:
       - shhgit-www
+    env_file:
+      - .env
     volumes:
       - ./config.yaml:/app/config.yaml:ro
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL

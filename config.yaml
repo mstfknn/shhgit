@@ -1,5 +1,6 @@
 github_access_tokens:
-  - ''
+  - '${GITHUB_TOKEN_1}'
+  - '${GITHUB_TOKEN_2}'
 webhook: '' # URL to which the payload is POSTed
 
 # This default payload will work for Slack and MatterMost.
@@ -9,7 +10,7 @@ webhook_payload: |
     "text": "%s"
   }
 
-blacklisted_strings: ["AKIAIOSFODNN7EXAMPLE", "username:password", "sshpass -p $SSH_PASS"] # skip matches containing any of these strings (case insensitive
+blacklisted_strings: ["AKIAIOSFODNN7EXAMPLE", "username:password", "sshpass -p $SSH_PASS", "fonts.googleapis.com"] # skip matches containing any of these strings (case insensitive
 blacklisted_extensions: [".exe", ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".psd", ".xcf", ".zip", ".tar.gz", ".ttf", ".lock"]
 blacklisted_paths: ["node_modules{sep}", "vendor{sep}bundle", "vendor{sep}cache"] # use {sep} for the OS' path seperator (i.e. / or \)
 blacklisted_entropy_extensions: [".pem", "id_rsa", ".asc", ".ovpn", ".sqlite", ".sqlite3", ".log"] # additional extensions to skip entropy checks
@@ -17,9 +18,6 @@ signatures:
   - part:  'extension'
     match: '.pem'
     name: 'Potential cryptographic private key'
-  - part:  'extension'
-    match: '.log'
-    name: 'Log file'
   - part:  'extension'
     match: '.pkcs12'
     name: 'Potential cryptographic key bundle'
@@ -86,6 +84,69 @@ signatures:
   - part:  'filename'
     match: 'settings.py'
     name: 'Django configuration file'
+  - part: 'contents'
+    regex: "((\\\"|'|`)?((?i)api)[_-]?((?i)key|(?i)token|(?i)secret)(\\\"|'|`)?\\\\s{0,50}(:|=>|=)\\\\s{0,50}(\\\"|'|`)?[A-Za-z0-9_\\-]{8,}(\\\"|'|`)?)|(?i)(apikey|api_key|secret|token)['\"\\s:=]+[a-zA-Z0-9\\-_.]{8,100}"
+    name: 'API Key'
+  - part: 'contents'
+    regex: "((\\\"|'|`)?((?i)openai)[_-]?((?i)api)[_-]?((?i)key|(?i)token|(?i)secret)(\\\"|'|`)?\\\\s{0,50}(:|=>|=)\\\\s{0,50}(\\\"|'|`)?(sk-[a-zA-Z0-9]{20,}|sk-proj-[a-zA-Z0-9]{20,})(\\\"|'|`)?)"
+    name: 'OpenAI API Key'
+  - part: 'contents'
+    regex: "(sk-[a-zA-Z0-9]{20,}|sk-proj-[a-zA-Z0-9]{20,})"
+    name: 'OpenAI API Key'
+  - part: 'contents'
+    regex: "((\\\"|'|`)?((?i)gemini)[_-]?((?i)api)[_-]?((?i)key|(?i)token|(?i)secret)(\\\"|'|`)?\\\\s{0,50}(:|=>|=)\\\\s{0,50}(\\\"|'|`)?[A-Za-z0-9_\\-]{20,}(\\\"|'|`)?)"
+    name: 'Gemini API Key'
+  - part: 'contents'
+    regex: "((\\\"|'|`)?((?i)shodan)[_-]?((?i)api)[_-]?((?i)key|(?i)token|(?i)secret)(\\\"|'|`)?\\\\s{0,50}(:|=>|=)\\\\s{0,50}(\\\"|'|`)?[A-Za-z0-9]{32}(\\\"|'|`)?)"
+    name: 'Shodan API Key'
+  - part: 'contents'
+    regex: "((?i)shodan[^a-z0-9]*[a-zA-Z0-9]{32}|[a-zA-Z0-9]{32}[^a-z0-9]*(?i)shodan)"
+    name: 'Shodan API Key'
+  - part: 'contents'
+    regex: "(sk-ant-[a-zA-Z0-9\\-_]{95})"
+    name: 'Anthropic Claude API Key'
+  - part: 'contents'
+    regex: "((\\\"|'|`)?((?i)anthropic|(?i)claude)[_-]?((?i)api)[_-]?((?i)key|(?i)token|(?i)secret)(\\\"|'|`)?\\\\s{0,50}(:|=>|=)\\\\s{0,50}(\\\"|'|`)?(sk-ant-[a-zA-Z0-9\\-_]{95})(\\\"|'|`)?)"
+    name: 'Anthropic Claude API Key'
+  - part: 'contents'
+    regex: "(hf_[a-zA-Z0-9]{37})"
+    name: 'Hugging Face API Key'
+  - part: 'contents'
+    regex: "((\\\"|'|`)?((?i)hugging[_-]?face|(?i)hf)[_-]?((?i)api)[_-]?((?i)key|(?i)token|(?i)secret)(\\\"|'|`)?\\\\s{0,50}(:|=>|=)\\\\s{0,50}(\\\"|'|`)?(hf_[a-zA-Z0-9]{37})(\\\"|'|`)?)"
+    name: 'Hugging Face API Key'
+  - part: 'contents'
+    regex: "(r8_[a-zA-Z0-9]{32,})"
+    name: 'Replicate API Key'
+  - part: 'contents'
+    regex: "((\\\"|'|`)?((?i)replicate)[_-]?((?i)api)[_-]?((?i)key|(?i)token|(?i)secret)(\\\"|'|`)?\\\\s{0,50}(:|=>|=)\\\\s{0,50}(\\\"|'|`)?(r8_[a-zA-Z0-9]{32,})(\\\"|'|`)?)"
+    name: 'Replicate API Key'
+  - part: 'contents'
+    regex: "((\\\"|'|`)?((?i)stability)[_-]?((?i)api)[_-]?((?i)key|(?i)token|(?i)secret)(\\\"|'|`)?\\\\s{0,50}(:|=>|=)\\\\s{0,50}(\\\"|'|`)?(sk-[a-zA-Z0-9]{32,})(\\\"|'|`)?)"
+    name: 'Stability AI API Key'
+  - part: 'contents'
+    regex: "(pplx-[a-zA-Z0-9]{32,})"
+    name: 'Perplexity API Key'
+  - part: 'contents'
+    regex: "((\\\"|'|`)?((?i)perplexity)[_-]?((?i)api)[_-]?((?i)key|(?i)token|(?i)secret)(\\\"|'|`)?\\\\s{0,50}(:|=>|=)\\\\s{0,50}(\\\"|'|`)?(pplx-[a-zA-Z0-9]{32,})(\\\"|'|`)?)"
+    name: 'Perplexity API Key'
+  - part: 'contents'
+    regex: "(gsk_[a-zA-Z0-9]{32,})"
+    name: 'Groq API Key'
+  - part: 'contents'
+    regex: "((\\\"|'|`)?((?i)groq)[_-]?((?i)api)[_-]?((?i)key|(?i)token|(?i)secret)(\\\"|'|`)?\\\\s{0,50}(:|=>|=)\\\\s{0,50}(\\\"|'|`)?(gsk_[a-zA-Z0-9]{32,})(\\\"|'|`)?)"
+    name: 'Groq API Key'
+  - part: 'contents'
+    regex: "((\\\"|'|`)?((?i)mistral)[_-]?((?i)api)[_-]?((?i)key|(?i)token|(?i)secret)(\\\"|'|`)?\\\\s{0,50}(:|=>|=)\\\\s{0,50}(\\\"|'|`)?[A-Za-z0-9_\\-]{32,}(\\\"|'|`)?)"
+    name: 'Mistral AI API Key'
+  - part: 'contents'
+    regex: "((\\\"|'|`)?((?i)cohere)[_-]?((?i)api)[_-]?((?i)key|(?i)token|(?i)secret)(\\\"|'|`)?\\\\s{0,50}(:|=>|=)\\\\s{0,50}(\\\"|'|`)?[A-Za-z0-9_\\-]{32,}(\\\"|'|`)?)"
+    name: 'Cohere API Key'
+  - part: 'contents'
+    regex: "((\\\"|'|`)?((?i)together)[_-]?((?i)api)[_-]?((?i)key|(?i)token|(?i)secret)(\\\"|'|`)?\\\\s{0,50}(:|=>|=)\\\\s{0,50}(\\\"|'|`)?[A-Za-z0-9_\\-]{32,}(\\\"|'|`)?)"
+    name: 'Together AI API Key'
+  - part: 'contents'
+    regex: "((\\\"|'|`)?((?i)fireworks)[_-]?((?i)api)[_-]?((?i)key|(?i)token|(?i)secret)(\\\"|'|`)?\\\\s{0,50}(:|=>|=)\\\\s{0,50}(\\\"|'|`)?[A-Za-z0-9_\\-]{32,}(\\\"|'|`)?)"
+    name: 'Fireworks AI API Key'
   - part:  'extension'
     match: '.agilekeychain'
     name: '1Password password manager database file'
@@ -465,3 +526,305 @@ signatures:
   - part:  'path'
     regex: '\.?mozilla[\\\/]firefox[\\\/]logins.json$'
     name: 'Firefox saved password collection (can be decrypted using keys4.db)'
+  # Gitleaks-inspired signatures
+  - part: 'contents'
+    regex: "\\bA3-[A-Z0-9]{6}-(?:[A-Z0-9]{11}|[A-Z0-9]{6}-[A-Z0-9]{5})-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}\\b"
+    name: '1Password Secret Key'
+  - part: 'contents'
+    regex: "ops_eyJ[a-zA-Z0-9+/]{250,}={0,3}"
+    name: '1Password Service Account Token'
+  - part: 'contents'
+    regex: "AGE-SECRET-KEY-1[QPZRY9X8GF2TVDW0S3JN54KHCE6MUA7L]{58}"
+    name: 'Age Secret Key'
+  - part: 'contents'
+    regex: "(?i)[\\w.-]{0,50}?(?:adafruit)(?:[ \\t\\w.-]{0,20})[\\s'\"]{0,3}(?:=|>|:{1,3}=|\\|\\||:|=>|\\?=|,)[\\x60'\"\\s=]{0,5}([a-z0-9_-]{32})(?:[\\x60'\"\\s;]|\\\\[nr]|$)"
+    name: 'Adafruit API Key'
+  - part: 'contents'
+    regex: "(?i)[\\w.-]{0,50}?(?:adobe)(?:[ \\t\\w.-]{0,20})[\\s'\"]{0,3}(?:=|>|:{1,3}=|\\|\\||:|=>|\\?=|,)[\\x60'\"\\s=]{0,5}([a-f0-9]{32})(?:[\\x60'\"\\s;]|\\\\[nr]|$)"
+    name: 'Adobe Client ID'
+  - part: 'contents'
+    regex: "\\b(p8e-(?i)[a-z0-9]{32})(?:[\\x60'\"\\s;]|\\\\[nr]|$)"
+    name: 'Adobe Client Secret'
+  - part: 'contents'
+    regex: "(?i)[\\w.-]{0,50}?(?:airtable)(?:[ \\t\\w.-]{0,20})[\\s'\"]{0,3}(?:=|>|:{1,3}=|\\|\\||:|=>|\\?=|,)[\\x60'\"\\s=]{0,5}([a-z0-9]{17})(?:[\\x60'\"\\s;]|\\\\[nr]|$)"
+    name: 'Airtable API Key'
+  - part: 'contents'
+    regex: "SK[0-9a-fA-F]{32}"
+    name: 'Twilio API Key'
+  - part: 'contents'
+    regex: "(?i)[\\w.-]{0,50}?(?:twitter)(?:[ \\t\\w.-]{0,20})[\\s'\"]{0,3}(?:=|>|:{1,3}=|\\|\\||:|=>|\\?=|,)[\\x60'\"\\s=]{0,5}([a-z0-9]{25})(?:[\\x60'\"\\s;]|\\\\[nr]|$)"
+    name: 'Twitter API Key'
+  - part: 'contents'
+    regex: "(?i)[\\w.-]{0,50}?(?:twitter)(?:[ \\t\\w.-]{0,20})[\\s'\"]{0,3}(?:=|>|:{1,3}=|\\|\\||:|=>|\\?=|,)[\\x60'\"\\s=]{0,5}([a-z0-9]{50})(?:[\\x60'\"\\s;]|\\\\[nr]|$)"
+    name: 'Twitter API Secret'
+  - part: 'contents'
+    regex: "(?i)[\\w.-]{0,50}?(?:twitter)(?:[ \\t\\w.-]{0,20})[\\s'\"]{0,3}(?:=|>|:{1,3}=|\\|\\||:|=>|\\?=|,)[\\x60'\"\\s=]{0,5}([0-9]{15,25}-[a-zA-Z0-9]{20,40})(?:[\\x60'\"\\s;]|\\\\[nr]|$)"
+    name: 'Twitter Access Token'
+  - part: 'contents'
+    regex: "(?i)[\\w.-]{0,50}?(?:typeform)(?:[ \\t\\w.-]{0,20})[\\s'\"]{0,3}(?:=|>|:{1,3}=|\\|\\||:|=>|\\?=|,)[\\x60'\"\\s=]{0,5}(tfp_[a-z0-9\\-_\\.=]{59})(?:[\\x60'\"\\s;]|\\\\[nr]|$)"
+    name: 'Typeform API Token'
+  - part: 'contents'
+    regex: "\\b(hvb\\.[\\w-]{138,300})(?:[\\x60'\"\\s;]|\\\\[nr]|$)"
+    name: 'Vault Batch Token'
+  - part: 'contents'
+    regex: "\\b(hvs\\.[\\w-]{90,120})(?:[\\x60'\"\\s;]|\\\\[nr]|$)"
+    name: 'Vault Service Token'
+  - part: 'contents'
+    regex: "(?i)[\\w.-]{0,50}?(?:yandex)(?:[ \\t\\w.-]{0,20})[\\s'\"]{0,3}(?:=|>|:{1,3}=|\\|\\||:|=>|\\?=|,)[\\x60'\"\\s=]{0,5}(AQVN[A-Za-z0-9_\\-]{35,38})(?:[\\x60'\"\\s;]|\\\\[nr]|$)"
+    name: 'Yandex API Key'
+  - part: 'contents'
+    regex: "(?i)[\\w.-]{0,50}?(?:yandex)(?:[ \\t\\w.-]{0,20})[\\s'\"]{0,3}(?:=|>|:{1,3}=|\\|\\||:|=>|\\?=|,)[\\x60'\"\\s=]{0,5}(t1\\.[A-Z0-9a-z_-]+[=]{0,2}\\.[A-Z0-9a-z_-]{86}[=]{0,2})(?:[\\x60'\"\\s;]|\\\\[nr]|$)"
+    name: 'Yandex Access Token'
+  - part: 'contents'
+    regex: "(?i)[\\w.-]{0,50}?(?:zendesk)(?:[ \\t\\w.-]{0,20})[\\s'\"]{0,3}(?:=|>|:{1,3}=|\\|\\||:|=>|\\?=|,)[\\x60'\"\\s=]{0,5}([a-z0-9]{40})(?:[\\x60'\"\\s;]|\\\\[nr]|$)"
+    name: 'Zendesk Secret Key'
+  - part: 'contents'
+    regex: "(?i)[\\w.-]{0,50}?(?:travis)(?:[ \\t\\w.-]{0,20})[\\s'\"]{0,3}(?:=|>|:{1,3}=|\\|\\||:|=>|\\?=|,)[\\x60'\"\\s=]{0,5}([a-z0-9]{22})(?:[\\x60'\"\\s;]|\\\\[nr]|$)"
+    name: 'Travis CI Access Token'
+  - part: 'contents'
+    regex: "(?i)[\\w.-]{0,50}?(?:twitch)(?:[ \\t\\w.-]{0,20})[\\s'\"]{0,3}(?:=|>|:{1,3}=|\\|\\||:|=>|\\?=|,)[\\x60'\"\\s=]{0,5}([a-z0-9]{30})(?:[\\x60'\"\\s;]|\\\\[nr]|$)"
+    name: 'Twitch API Token'
+  # Additional API Keys & Tokens
+  - part: 'contents'
+    regex: "AKIA[0-9A-Z]{16}"
+    name: 'AWS Access Key ID'
+  - part: 'contents'
+    regex: "AIza[0-9A-Za-z\\-_]{35}"
+    name: 'Google API Key'
+  - part: 'contents'
+    regex: "AAAA[A-Za-z0-9_-]{7}:[A-Za-z0-9_-]{140}"
+    name: 'Firebase Secret'
+  - part: 'contents'
+    regex: "ghp_[0-9a-zA-Z]{36}"
+    name: 'GitHub Personal Access Token'
+  - part: 'contents'
+    regex: "glpat-[0-9a-zA-Z-_]{20}"
+    name: 'GitLab Personal Access Token'
+  - part: 'contents'
+    regex: "xox[baprs]-([0-9a-zA-Z]{10,48})"
+    name: 'Slack Token'
+  - part: 'contents'
+    regex: "sk_live_[0-9a-zA-Z]{24}"
+    name: 'Stripe Secret Key'
+  - part: 'contents'
+    regex: "pk_live_[0-9a-zA-Z]{24}"
+    name: 'Stripe Publishable Key'
+  - part: 'contents'
+    regex: "sl\\.[A-Za-z0-9_-]{20,100}"
+    name: 'Dropbox Access Token'
+  - part: 'contents'
+    regex: "shpat_[0-9a-fA-F]{32}"
+    name: 'Shopify Access Token'
+  - part: 'contents'
+    regex: "EAACEdEose0cBA[0-9A-Za-z]+"
+    name: 'Facebook Access Token'
+  - part: 'contents'
+    regex: "dop_v1_[a-z0-9]{64}"
+    name: 'DigitalOcean Token'
+  - part: 'contents'
+    regex: "0/[0-9a-z]{32}"
+    name: 'Asana Personal Access Token'
+  - part: 'contents'
+    regex: "lin_api_[a-zA-Z0-9]{40}"
+    name: 'Linear API Key'
+  - part: 'contents'
+    regex: "\\d{9}:[a-zA-Z0-9_-]{35}"
+    name: 'Telegram Bot Token'
+  # OAuth & JWT
+  - part: 'contents'
+    regex: "(?i)client_secret['\"\\s:=]+[a-zA-Z0-9\\-_.~]{10,100}"
+    name: 'OAuth Client Secret'
+  - part: 'contents'
+    regex: "(?i)client_id['\"\\s:=]+[a-zA-Z0-9\\-_.~]{10,100}"
+    name: 'OAuth Client ID'
+  - part: 'contents'
+    regex: "eyJ[A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+/=]*"
+    name: 'JWT Token'
+  - part: 'contents'
+    regex: "(?i)azure(.{0,20})?client\\.secret(.{0,20})?['\"][a-zA-Z0-9._%+-]{32,}['\"]"
+    name: 'Azure Client Secret'
+  - part: 'contents'
+    regex: "https://[a-z]+\\.webhook\\.office\\.com/webhookb2/[a-zA-Z0-9@\\-]+/.*"
+    name: 'Microsoft Teams Webhook'
+  # Database URLs
+  - part: 'contents'
+    regex: "mongodb(\\+srv)?://[^\\s'\"]+"
+    name: 'MongoDB Connection URI'
+  - part: 'contents'
+    regex: "postgres(?:ql)?://[^\\s'\"]+"
+    name: 'PostgreSQL Connection URI'
+  - part: 'contents'
+    regex: "mysql://[^\\s'\"]+"
+    name: 'MySQL Connection URI'
+  - part: 'contents'
+    regex: "redis://[^\\s'\"]+"
+    name: 'Redis Connection URI'
+  - part: 'contents'
+    regex: "elasticsearch://[^\\s'\"]+"
+    name: 'Elasticsearch Connection URI'
+  - part: 'contents'
+    regex: "supabase\\.co/[a-z0-9]{15,}"
+    name: 'Supabase DB Key'
+  - part: 'contents'
+    regex: "https://[a-z0-9-]+\\.firebaseio\\.com"
+    name: 'Firebase URL'
+  - part: 'contents'
+    regex: "jdbc:\\w+://[^\\s'\"]+"
+    name: 'JDBC Connection URL'
+  - part: 'contents'
+    regex: "[a-z0-9-]+\\.rds\\.amazonaws\\.com"
+    name: 'AWS RDS Hostname'
+  - part: 'contents'
+    regex: "googleapis\\.com/sql/v1beta4/projects/"
+    name: 'Cloud SQL URI (GCP)'
+  # Other Service Credentials
+  - part: 'contents'
+    regex: "(?i)(algolia|application)_?key['\"\\s:=]+[a-zA-Z0-9]{10,}"
+    name: 'Algolia API Key'
+  - part: 'contents'
+    regex: "firebaseConfig\\s*=\\s*\\{[^}]*apiKey\\s*:\\s*['\"][^'\"]+['\"]"
+    name: 'Firebase API Key'
+  - part: 'contents'
+    regex: "cloudinary://[0-9]{15}:[a-zA-Z0-9]+@[a-zA-Z]+"
+    name: 'Cloudinary URL'
+  - part: 'contents'
+    regex: "https://[a-zA-Z0-9]+@[a-z]+\\.ingest\\.sentry\\.io/\\d+"
+    name: 'Sentry DSN'
+  - part: 'contents'
+    regex: "netlifyAuthToken\\s*=\\s*['\"][a-z0-9]{40}['\"]"
+    name: 'Netlify Token'
+  - part: 'contents'
+    regex: "(?i)segment(.{0,20})?key['\"\\s:=]+[a-zA-Z0-9]{10,}"
+    name: 'Segment API Key'
+  - part: 'contents'
+    regex: "(?i)intercom(.{0,20})?token['\"\\s:=]+[a-zA-Z0-9-_]{20,}"
+    name: 'Intercom Access Token'
+  - part: 'contents'
+    regex: "apiKey['\"]?\\s*:\\s*['\"][a-z0-9\\-]{32,64}['\"]"
+    name: 'Amplitude API Key'
+  - part: 'contents'
+    regex: "(?i)plaid(.{0,20})?(client)?secret['\"\\s:=]+[a-z0-9-_]{30,}"
+    name: 'Plaid Client Secret'
+  # Container & Deployment Secrets
+  - part: 'contents'
+    regex: "arn:aws:iam::[0-9]{12}:role/[A-Za-z0-9_+=,.@\\-_/]+"
+    name: 'AWS IAM Role ARN'
+  - part: 'contents'
+    regex: "s3://[a-z0-9\\-\\.]{3,63}"
+    name: 'AWS S3 Bucket URL'
+  - part: 'contents'
+    regex: "(?i)secretName:\\s*['\"]?[a-z0-9\\-]+['\"]?"
+    name: 'Kubernetes Secret Name'
+  - part: 'contents'
+    regex: "(?i)secret\\s*:\\s*['\"][^'\"]+['\"]"
+    name: 'Helm Secret Value'
+  - part: 'contents'
+    regex: "secrets\\.[A-Z0-9_]+"
+    name: 'GitHub Actions Secret Reference'
+  - part: 'contents'
+    regex: "encrypted_value:\\s*['\"][a-zA-Z0-9+/=]{10,}['\"]"
+    name: 'GitHub Actions Encrypted Value'
+  - part: 'contents'
+    regex: "eyJhbGciOiJSUzI1NiIsImtpZCI6"
+    name: 'K8s Service Account Token'
+  - part: 'contents'
+    regex: "https://vault\\.[a-z0-9\\-_\\.]+\\.com"
+    name: 'Hashicorp Vault URL'
+  # DevOps & CI/CD Credentials
+  - part: 'contents'
+    regex: "circle-token=[a-z0-9]{40}"
+    name: 'CircleCI Token'
+  - part: 'contents'
+    regex: "(?i)travis(.{0,20})?token['\"\\s:=]+[a-z0-9]{30,}"
+    name: 'Travis CI Token'
+  - part: 'contents'
+    regex: "Jenkins-Crumb:\\s*[a-z0-9]{30,}"
+    name: 'Jenkins Crumb Token'
+  - part: 'contents'
+    regex: "[a-z0-9]{52}"
+    name: 'Azure DevOps Token'
+  - part: 'contents'
+    regex: "github_pat_[0-9a-zA-Z_]{20,}"
+    name: 'GitHub Fine-Grained Token'
+  - part: 'contents'
+    regex: "(?i)bitbucket(.{0,20})?key['\"\\s:=]+[a-zA-Z0-9]{20,}"
+    name: 'Bitbucket OAuth Key'
+  - part: 'contents'
+    regex: "(?i)bitbucket(.{0,20})?secret['\"\\s:=]+[a-zA-Z0-9]{20,}"
+    name: 'Bitbucket OAuth Secret'
+  - part: 'contents'
+    regex: "glrt-[a-zA-Z0-9_-]{20}"
+    name: 'GitLab Runner Token'
+  # SDKs & Tooling Keys
+  - part: 'contents'
+    regex: "[a-z0-9]{30}-[a-z0-9]{10}"
+    name: 'Loggly Token'
+  - part: 'contents'
+    regex: "NRII-[a-zA-Z0-9]{20,}"
+    name: 'New Relic Key'
+  - part: 'contents'
+    regex: "(?i)mixpanel(.{0,20})?token['\"\\s:=]+[a-z0-9]{32}"
+    name: 'Mixpanel Token'
+  - part: 'contents'
+    regex: "heapSettings\\.appId\\s*=\\s*['\"][a-z0-9]{8,12}['\"]"
+    name: 'Heap Analytics App ID'
+  - part: 'contents'
+    regex: "projectId['\"]?\\s*:\\s*['\"][a-f0-9]{24}['\"]"
+    name: 'Keen IO Project ID'
+  - part: 'contents'
+    regex: "writeKey['\"]?\\s*:\\s*['\"][a-zA-Z0-9]{64}['\"]"
+    name: 'Keen IO Write Key'
+  - part: 'contents'
+    regex: "snyk_token\\s*=\\s*[a-f0-9\\-]{36}"
+    name: 'Snyk Token'
+  - part: 'contents'
+    regex: "access_token['\"]?\\s*:\\s*['\"][a-z0-9]{32}['\"]"
+    name: 'Rollbar Access Token'
+  # App & Game APIs
+  - part: 'contents'
+    regex: "(?i)twitch(.{0,20})?key['\"\\s:=]+[a-zA-Z0-9]{20,}"
+    name: 'Twitch API Key'
+  - part: 'contents'
+    regex: "[MN][A-Za-z\\d]{23}\\.[\\w-]{6}\\.[\\w-]{27}"
+    name: 'Discord Bot Token'
+  - part: 'contents'
+    regex: "https://discord(?:app)?\\.com/api/webhooks/[0-9]+/[a-zA-Z0-9_-]+"
+    name: 'Discord Webhook URL'
+  - part: 'contents'
+    regex: "(?i)steam(.{0,20})?key['\"\\s:=]+[a-zA-Z0-9]{32}"
+    name: 'Steam Web API Key'
+  - part: 'contents'
+    regex: "RGAPI-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+    name: 'Riot Games API Key'
+  # URL Leaks & Internal Endpoints
+  - part: 'contents'
+    regex: "https?://[a-z0-9.-]+\\.internal\\.[a-z]{2,}"
+    name: 'Internal Subdomain URL'
+  - part: 'contents'
+    regex: "https://preprod\\.[a-z0-9-]+\\.[a-z]{2,}"
+    name: 'Preprod URL'
+  # Miscellaneous & Generic
+  - part: 'contents'
+    regex: "-----BEGIN CERTIFICATE-----"
+    name: 'PEM Certificate'
+  - part: 'contents'
+    regex: "-----BEGIN PGP PRIVATE KEY BLOCK-----"
+    name: 'PGP Private Key Block'
+  - part: 'contents'
+    regex: "['\"][A-Za-z0-9+/]{40,}={0,2}['\"]"
+    name: 'Base64 High Entropy String'
+  - part: 'contents'
+    regex: "(?i)authorization:\\s*Bearer\\s+[a-zA-Z0-9\\-._~+/]+=*"
+    name: 'Authorization Bearer Token'
+  - part: 'contents'
+    regex: "(?i)(sessionid|session_id)['\"\\s:=]+[a-zA-Z0-9]{10,}"
+    name: 'Session ID'
+  - part: 'contents'
+    regex: "(?i)set-cookie:\\s*[a-zA-Z0-9_-]+="
+    name: 'Cookie Name Generic'
+  - part: 'contents'
+    regex: "(?i)csrf(token)?['\"\\s:=]+[a-zA-Z0-9-_]{8,}"
+    name: 'CSRF Token'
+  - part: 'contents'
+    regex: "localStorage\\.setItem\\(['\"]token['\"],\\s*['\"]eyJ[a-zA-Z0-9-_]+\\.[a-zA-Z0-9-_]+\\.[a-zA-Z0-9-_]+['\"]\\)"
+    name: 'JWT in Local Storage'

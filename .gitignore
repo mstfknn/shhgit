@@ -10,3 +10,25 @@ build.sh
 vendor/
 build/
 .vscode/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+
+# Secrets - never commit real tokens
+config.local.yaml
+*.env
+.env
+.env.*
+
+# Temp files
+/tmp/
+*.jsonl
+*.log
+
+# IDE
+.idea/
+*.swp
+*.swo

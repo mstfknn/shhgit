@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v56/github"
 )
 
 type GitHubClientWrapper struct {

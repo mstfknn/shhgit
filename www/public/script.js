@@ -1156,25 +1156,52 @@ document.addEventListener('DOMContentLoaded', function(event) {
         interestingFiles: document.getElementById('setting-interesting-files'),
         highEntropyStrings: document.getElementById('setting-high-entropy-strings'),
         notifications: document.getElementById('setting-notifications'),
-        matchesCount: document.getElementById('matches-count').getElementsByTagName('span')[0],
+        matchesCount: document.getElementById('matches-count'),
         filtersClear: document.getElementById('filters-clear'),
-        filtersCount: document.getElementById('filters-count').getElementsByTagName('span')[0]
+        filtersCount: document.getElementById('filters-count')
     };
     const slugify = (value) => value.toLowerCase().replace(/[^a-z0-9 -]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
+    const escapeHtml = (text) => {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    };
     const getFileUrl = (data) => {
-        if (!data.Url.substr(-4) === '.git') return data.Url;
+        // If URL doesn't end with .git, return as is
+        if (data.Url.substr(-4) !== '.git') return data.Url;
 
         var source = getSource(data.Source);
+        if (!source) source = {icon: 'github', name: 'GitHub'};
+        
+        var repoUrl = data.Url.substr(0, data.Url.indexOf('.git'));
         var prefix = source.icon == 'bitbucket' ? 'src' : 'blob';
         
-        return `${data.Url.substr(0, data.Url.indexOf('.git'))}/${prefix}/master${data.File}`;
+        // Backend sends File path as /hash/path/to/file where hash is temp directory hash
+        // We need to strip the hash and use default branch instead
+        // Pattern: /hash/path/to/file where hash is 7-40 hex characters
+        var hashMatch = data.File.match(/^\/([a-f0-9A-F]{7,40})(\/.*)?$/);
+        
+        if (hashMatch) {
+            // File path contains a hash (likely temp directory hash, not a commit hash)
+            // Strip the hash and use default branch
+            var filePath = hashMatch[2] || '';
+            // Try main first, fallback to master
+            var branch = 'main';
+            return `${repoUrl}/${prefix}/${branch}${filePath}`;
+        } else {
+            // No hash found, use path as is with default branch
+            var branch = 'main';
+            return `${repoUrl}/${prefix}/${branch}${data.File}`;
+        }
     };
     const getSource = (source) => {
         switch (source) {
-            case 0: return {icon: 'github', name: 'GitHub'};
-            case 1: return {icon: 'github-square', name: 'Gist'};
-            case 2: return {icon: 'bitbucket', name: 'BitBucket'};
-            case 3: return {icon: 'gitlab', name: 'GitLab'};
+            case 0: return {icon: 'hdd', name: 'Local'};
+            case 1: return {icon: 'github', name: 'GitHub'};
+            case 2: return {icon: 'github', name: 'GitHub Comment'};
+            case 3: return {icon: 'github-square', name: 'Gist'};
+            case 4: return {icon: 'bitbucket', name: 'BitBucket'};
+            case 5: return {icon: 'gitlab', name: 'GitLab'};
         }
     };
     const getIssueUrl = (data) => {
@@ -1195,9 +1222,48 @@ document.addEventListener('DOMContentLoaded', function(event) {
             .forEach(li => list.appendChild(li));
     };
     const updateStatus = (text, cls) => {
-        settings.connectionStats.classList.remove('is-info', 'is-success', 'is-warning', 'is-danger');
-        settings.connectionStats.classList.add(cls);
-        settings.connectionStats.textContent = text;
+        const statusEl = settings.connectionStats;
+        if (!statusEl) return;
+        
+        try {
+            const statusText = statusEl.querySelector('span:last-child');
+            const statusIcon = statusEl.querySelector('i');
+            
+            if (statusText) {
+                statusText.textContent = text;
+            } else {
+                // Fallback: if span not found, update the element directly
+                const spans = statusEl.querySelectorAll('span');
+                if (spans.length > 0) {
+                    spans[spans.length - 1].textContent = text;
+                }
+            }
+            
+            // Update connection badge classes
+            statusEl.className = 'connection-badge';
+            if (cls === 'is-success') {
+                statusEl.classList.add('connected');
+            }
+        } catch (e) {
+            console.error('Error updating status:', e);
+        }
+    };
+    
+    // Function to update matches count
+    const updateMatchesCount = () => {
+        try {
+            const matchesCount = document.getElementsByClassName('log').length;
+            if (settings.matchesCount) {
+                settings.matchesCount.textContent = `${matchesCount} matches`;
+            }
+            // Toggle empty state
+            const emptyState = document.getElementById('empty-state');
+            if (emptyState) {
+                emptyState.classList.toggle('show', matchesCount === 0);
+            }
+        } catch (e) {
+            console.error('Error updating matches count:', e);
+        }
     };
     const filterSignature = (signature) => {
         var state = settings.activeSignatures.includes(signature.id);
@@ -1230,30 +1296,66 @@ document.addEventListener('DOMContentLoaded', function(event) {
         settings.filtersCount.textContent = `${settings.activeSignatures.length} filters`;
     };
     const processEvent = (data) => {
+        // Remove duplicate matches
+        if (data.Matches && data.Matches.length > 0) {
+            var uniqueMatches = [];
+            var seenMatches = {};
+            for (var i = 0; i < data.Matches.length; i++) {
+                if (!seenMatches[data.Matches[i]]) {
+                    seenMatches[data.Matches[i]] = true;
+                    uniqueMatches.push(data.Matches[i]);
+                }
+            }
+            data.Matches = uniqueMatches;
+        }
+        
         var eventId = CryptoJS.MD5(data.File + '-' + data.Signature + '-' + (data.Matches ? data.Matches.join('') : '0')).toString();
         if (document.getElementById(eventId)) return; // duplicate
 
         var sigId = slugify(data.Signature);
         var matchesCount = data.Matches ? data.Matches.length : 1;
-        var sigMenuItem = document.getElementById(sigId).getElementsByClassName('menu-item')[0];
-        var source = getSource(data.Source)
-        sigMenuItem.setAttribute('data-badge', parseInt(sigMenuItem.getAttribute('data-badge') || 0) + matchesCount);
-        sort(document.getElementById('signatures'));
+        var sigElement = document.getElementById(sigId);
+        if (sigElement) {
+            var sigMenuItem = sigElement.getElementsByClassName('menu-item')[0];
+            if (sigMenuItem) {
+                sigMenuItem.setAttribute('data-badge', parseInt(sigMenuItem.getAttribute('data-badge') || 0) + matchesCount);
+                sort(document.getElementById('signatures'));
+            }
+        }
+        var source = getSource(data.Source);
+        if (!source) source = {icon: 'github', name: 'GitHub'};
 
         var row = document.getElementById('messages').insertRow(0);
         row.classList.add('log', sigId);
         row.id = eventId;
-        row.insertCell(0).innerHTML = `<td class="source"><span class="icon" title="${source.name}"><i class="fab fa-lg fa-${source.icon}"></i></span></td>`;
-        row.insertCell(1).innerHTML = `<td class="found"><span class="datetime" title="${new Date().toLocaleString}">${new Date().toLocaleTimeString()}</span></td>`;
-        row.insertCell(2).innerHTML = `<td class="signature-name"><strong>${data.Signature}</strong>${source.icon != 'bitbucket' ? `<a href="${getIssueUrl(data)}" title="Raise an issue" target="_blank" onclick="event.stopPropagation();"><span class="icon is-dark"><i class="fas fa-flag"></i></span></a>` : ''}</td>`;
-        row.insertCell(3).innerHTML = `<td class="matches"><div>${data.Matches ? "<pre>" + data.Matches.join('<br />') + "</pre>" : '<em>&mdash;</em>'}</div></td>`;
-        row.insertCell(4).innerHTML = `<td class="file-url"><a href="${getFileUrl(data)}" target="_blank">${data.File}</a></td>`;
-        row.insertCell(5).innerHTML = `<td class="stars">${data.Stars}</td>`
-        row.addEventListener('click', (event) => {
-            event.preventDefault();
-            window.open(getFileUrl(data), '_blank');
-        });
-        settings.matchesCount.textContent = `${document.getElementsByClassName('log').length} matches`;
+        
+        var sourceCell = row.insertCell(0);
+        sourceCell.className = 'source';
+        sourceCell.innerHTML = `<span class="source-icon" title="${source.name}"><i class="fab fa-${source.icon}"></i></span>`;
+        
+        var foundCell = row.insertCell(1);
+        foundCell.className = 'found';
+        foundCell.innerHTML = `<span class="datetime" title="${new Date().toLocaleString()}">${new Date().toLocaleTimeString()}</span>`;
+        
+        var signatureCell = row.insertCell(2);
+        signatureCell.className = 'signature-name';
+        signatureCell.innerHTML = `<div class="signature-name"><strong>${escapeHtml(data.Signature)}</strong>${source.icon != 'bitbucket' ? `<a href="${getIssueUrl(data)}" title="Raise an issue" target="_blank" onclick="event.stopPropagation();"><i class="fas fa-flag"></i></a>` : ''}</div>`;
+
+        var matchesCell = row.insertCell(3);
+        matchesCell.className = 'matches';
+        matchesCell.innerHTML = `<div onclick="event.stopPropagation();">${data.Matches ? "<pre>" + data.Matches.map(escapeHtml).join('<br />') + "</pre>" : '<em>&mdash;</em>'}</div>`;
+
+        var fileCell = row.insertCell(4);
+        fileCell.className = 'file-url';
+        fileCell.innerHTML = `<a href="${getFileUrl(data)}" target="_blank" onclick="event.stopPropagation();">${escapeHtml(data.File)}</a>`;
+
+        var starsCell = row.insertCell(5);
+        starsCell.className = 'stars';
+        starsCell.innerHTML = escapeHtml(String(data.Stars || '0'));
+        // Removed row click event - only File column link should navigate to GitHub
+        
+        // Update matches count after adding new row
+        updateMatchesCount();
 
         if (!data.Matches) {
             row.classList.add('is-interesting-file')
@@ -1268,32 +1370,117 @@ document.addEventListener('DOMContentLoaded', function(event) {
         if (settings.activeSignatures.length > 0 && !settings.activeSignatures.includes(sigId)) row.style.display = 'none';
         if (settings.notifications.checked) notifyFinding(data.Signature, data.Matches ? data.Matches.join(', ') : data.File);
     };
+    let lastReadPosition = 0;
+    let pollInterval = null;
+    let processedMatches = new Set(); // Track processed matches to avoid duplicates
+
     const listenForEvents = () => {
-        window.connection = new PushStream({
-            host: 'localhost',
-            port: 8080,
-            urlPrefixEventsource: '/events',
-            useSSL: false,
-            modes: 'eventsource',
-            messagesPublishedAfter: 100,
-            messagesControlByArgument: true
-        });
+        // Poll matches.jsonl file instead of using EventSource
+        updateStatus('Connected', 'is-success');
+        const loadingEl = document.getElementById('loading');
+        if (loadingEl) {
+            loadingEl.classList.remove('show');
+            setTimeout(() => loadingEl.remove(), 300);
+        }
+        
+        // Initial matches count update
+        updateMatchesCount();
 
-        window.connection.onerror = (e) => {
-          if (confirm("Error connecting to shhgit. Reload to retry?")) window.location.reload();
+        const pollMatches = async () => {
+            try {
+                const response = await fetch('/matches.jsonl?' + Date.now());
+                if (!response.ok) {
+                    // File doesn't exist yet, that's OK
+                    if (response.status === 404) {
+                        return;
+                    }
+                    console.error('Error fetching matches:', response.statusText);
+                    updateStatus('Connection error, retrying...', 'is-warning');
+                    return;
+                }
+                
+                const text = await response.text();
+                const lines = text.split('\n').filter(line => line.trim() !== '');
+                
+                // Process new lines
+                let newCount = 0;
+                let errorCount = 0;
+                for (let i = lastReadPosition; i < lines.length; i++) {
+                    try {
+                        const data = JSON.parse(lines[i]);
+                        // Create a unique key for this match to avoid duplicates
+                        // Include matches in the key to allow multiple matches in same file
+                        const matchKey = `${data.Url}|${data.File}|${data.Signature}|${JSON.stringify(data.Matches || [])}`;
+                        if (!processedMatches.has(matchKey)) {
+                            processEvent(data);
+                            processedMatches.add(matchKey);
+                            newCount++;
+                        }
+                    } catch (e) {
+                        errorCount++;
+                        // Only log parsing errors if they're not related to undefined properties
+                        if (!e.message.includes('Cannot set properties of undefined')) {
+                            console.error('Error parsing match at line', i + 1, ':', e.message, lines[i]?.substring(0, 100));
+                        }
+                    }
+                }
+                
+                if (newCount > 0 || errorCount > 0) {
+                    console.log(`Processed ${newCount} new matches, ${errorCount} errors (total processed: ${processedMatches.size}, file lines: ${lines.length})`);
+                }
+                
+                // Update matches count after processing
+                updateMatchesCount();
+                
+                lastReadPosition = lines.length;
+                updateStatus('Connected', 'is-success');
+            } catch (e) {
+                console.error('Error fetching matches:', e);
+                updateStatus('Connection error, retrying...', 'is-warning');
+            }
         };
-        window.connection.onstatuschange = (e) => {
-            if (e == PushStream.OPEN) updateStatus('Connected', 'is-success');
-            else if (e == PushStream.CONNECTING) updateStatus('Syncing...', 'is-info');
-        };
-        window.connection.onmessage = (text, id, channel, eventid, isLast, time) => {
-            if (document.getElementById('loading')) document.getElementById('loading').remove();
 
-            processEvent(text);
+        // Poll every 2 seconds
+        pollInterval = setInterval(pollMatches, 2000);
+        pollMatches(); // Initial poll
+        
+        // Fix existing URLs that were created with old code
+        const fixExistingUrls = () => {
+            const tbody = document.getElementById('messages');
+            if (!tbody) return;
+            
+            const rows = tbody.querySelectorAll('tr');
+            let fixed = 0;
+            rows.forEach(row => {
+                const cells = row.cells;
+                if (cells && cells.length > 4) {
+                    const fileCell = cells[4];
+                    const link = fileCell.querySelector('a');
+                    if (link && link.href && link.href.includes('/blob/')) {
+                        // Check if URL contains a hash (likely temp directory hash, not commit hash)
+                        // Pattern: /blob/HASH/path where HASH is 7-40 hex chars
+                        // We'll replace all hash-based URLs with main branch
+                        const urlMatch = link.href.match(/\/blob\/([a-f0-9A-F]{7,40})(\/.*)$/);
+                        if (urlMatch) {
+                            // This is a hash-based URL - fix it to use main branch
+                            const repoUrl = link.href.substring(0, link.href.indexOf('/blob/'));
+                            const filePath = urlMatch[2];
+                            const newUrl = `${repoUrl}/blob/main${filePath}`;
+                            if (link.href !== newUrl) {
+                                link.href = newUrl;
+                                fixed++;
+                            }
+                        }
+                    }
+                }
+            });
+            if (fixed > 0) console.log(`Fixed ${fixed} URLs to use main branch`);
         };
-
-        window.connection.addChannel('shhgit');
-        window.connection.connect();
+        
+        // Fix URLs after initial load
+        setTimeout(fixExistingUrls, 2000);
+        // Also fix URLs periodically in case new matches come in with old format
+        setInterval(fixExistingUrls, 5000);
     };
     const notifyFinding = (title, message) => {
         if (Notification.permission === "granted") {
@@ -1306,11 +1493,11 @@ document.addEventListener('DOMContentLoaded', function(event) {
 
     (() => {
         burger.addEventListener('click', () => {
-            const target = burger.dataset.target;
-            const $target = document.getElementById(target);
-    
+            const menu = document.getElementById('menu');
             burger.classList.toggle('is-active');
-            $target.classList.toggle('is-active');
+            menu.classList.toggle('is-active');
+            const expanded = burger.getAttribute('aria-expanded') === 'true';
+            burger.setAttribute('aria-expanded', String(!expanded));
         });
 
         settings.interestingFiles.addEventListener('change', (event) => {
@@ -1350,7 +1537,7 @@ document.addEventListener('DOMContentLoaded', function(event) {
                 signatures.forEach(signature => {
                     var li = document.createElement('li');
                     li.id = slugify(signature)
-                    li.innerHTML = `<a href="#" class="menu-item" title="${signature}">${signature}</a>`;
+                    li.innerHTML = `<a href="#" class="menu-item" title="${escapeHtml(signature)}">${escapeHtml(signature)}</a>`;
                     li.addEventListener('click', (event) => {
                         event.preventDefault();
                         filterSignature(li);

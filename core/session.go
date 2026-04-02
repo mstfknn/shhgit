@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
-	"math/rand"
 	"os"
+	"regexp"
 	"runtime"
 	"sync"
 	"time"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v56/github"
 	"golang.org/x/oauth2"
 )
 
@@ -29,6 +29,7 @@ type Session struct {
 	Clients          chan *GitHubClientWrapper
 	ExhaustedClients chan *GitHubClientWrapper
 	CsvWriter        *csv.Writer
+	SearchRegex      *regexp.Regexp
 }
 
 var (
@@ -38,13 +39,22 @@ var (
 )
 
 func (s *Session) Start() {
-	rand.Seed(time.Now().Unix())
-
 	s.InitLogger()
 	s.InitThreads()
 	s.InitSignatures()
 	s.InitGitHubClients()
 	s.InitCsvWriter()
+	s.InitSearchRegex()
+}
+
+func (s *Session) InitSearchRegex() {
+	if *s.Options.SearchQuery != "" {
+		var err error
+		s.SearchRegex, err = regexp.Compile(*s.Options.SearchQuery)
+		if err != nil {
+			s.Log.Fatal("Invalid search query regex '%s': %s", *s.Options.SearchQuery, err)
+		}
+	}
 }
 
 func (s *Session) InitLogger() {
@@ -91,21 +101,64 @@ func (s *Session) InitGitHubClients() {
 func (s *Session) GetClient() *GitHubClientWrapper {
 	for {
 		select {
-
 		case client := <-s.Clients:
 			s.Log.Debug("Using client with token: %s", client.Token[:10])
 			return client
 
-		case client := <-s.ExhaustedClients:
-			sleepTime := time.Until(client.RateLimitedUntil)
-			s.Log.Warn("All GitHub tokens exhausted/rate limited. Sleeping for %s", sleepTime.String())
-			time.Sleep(sleepTime)
-			s.Log.Debug("Returning client %s to pool", client.Token[:10])
-			s.FreeClient(client)
-
 		default:
-			s.Log.Debug("Available Clients: %d", len(s.Clients))
-			s.Log.Debug("Exhausted Clients: %d", len(s.ExhaustedClients))
+			// No available clients, check exhausted clients
+			exhaustedCount := len(s.ExhaustedClients)
+			
+			if exhaustedCount > 0 {
+				// Collect all exhausted clients to find the one with earliest reset time
+				exhaustedClients := make([]*GitHubClientWrapper, 0, exhaustedCount)
+				earliestReset := time.Now().Add(24 * time.Hour) // Far future
+				var earliestClient *GitHubClientWrapper
+
+				// Drain exhausted clients channel temporarily
+				for i := 0; i < exhaustedCount; i++ {
+					select {
+					case client := <-s.ExhaustedClients:
+						exhaustedClients = append(exhaustedClients, client)
+						if client.RateLimitedUntil.Before(earliestReset) {
+							earliestReset = client.RateLimitedUntil
+							earliestClient = client
+						}
+					default:
+						break
+					}
+				}
+
+				// Put all clients back except the one we'll wait for
+				for _, client := range exhaustedClients {
+					if client != earliestClient {
+						s.ExhaustedClients <- client
+					}
+				}
+
+				if earliestClient != nil {
+					// Check if any client is already available
+					if earliestReset.Before(time.Now()) {
+						// This client is ready, return it to available pool
+						s.Log.Debug("Client %s is ready, returning to pool", earliestClient.Token[:10])
+						s.Clients <- earliestClient
+						continue
+					}
+
+					// Wait for the earliest reset time
+					sleepTime := time.Until(earliestReset)
+					s.Log.Warn("All GitHub tokens exhausted/rate limited. Earliest reset in %s (token: %s[..])", sleepTime.String(), earliestClient.Token[:10])
+					time.Sleep(sleepTime)
+					
+					// Return this client to available pool
+					s.Log.Debug("Returning client %s to pool", earliestClient.Token[:10])
+					s.Clients <- earliestClient
+					continue
+				}
+			}
+
+			// No clients available, wait a bit and retry
+			s.Log.Debug("Available Clients: %d, Exhausted Clients: %d", len(s.Clients), len(s.ExhaustedClients))
 			time.Sleep(time.Millisecond * 1000)
 		}
 	}

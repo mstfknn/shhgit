@@ -3,15 +3,12 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"encoding/json"
-	"io/ioutil"
+	"html"
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
-	"time"
 
 	"github.com/eth0izzle/shhgit/core"
 	"github.com/fatih/color"
@@ -34,10 +31,6 @@ func ProcessRepositories() {
 	for i := 0; i < threadNum; i++ {
 		go func(tid int) {
 			for {
-				timeout := time.Duration(*session.Options.CloneRepositoryTimeout) * time.Second
-				_, cancel := context.WithTimeout(context.Background(), timeout)
-				defer cancel()
-
 				repository := <-session.Repositories
 
 				repo, err := core.GetRepository(session, repository.Id)
@@ -75,39 +68,35 @@ func ProcessComments() {
 	threadNum := *session.Options.Threads
 
 	for i := 0; i < threadNum; i++ {
-		go func(tid int) {
-			for {
-				commentBody := <-session.Comments
-				dir := core.GetTempDir(core.GetHash(commentBody))
-				ioutil.WriteFile(filepath.Join(dir, "comment.ignore"), []byte(commentBody), 0644)
-
-				if !checkSignatures(dir, "ISSUE", 0, core.GITHUB_COMMENT) {
-					os.RemoveAll(dir)
+			go func(tid int) {
+				for {
+					commentBody := <-session.Comments
+					func() {
+						dir := core.GetTempDir(core.GetHash(commentBody))
+						defer os.RemoveAll(dir)
+						os.WriteFile(filepath.Join(dir, "comment.ignore"), []byte(commentBody), 0600)
+						checkSignatures(dir, "ISSUE", 0, core.GITHUB_COMMENT)
+					}()
 				}
-			}
 		}(i)
 	}
 }
 
 func processRepositoryOrGist(url string, ref string, stars int, source core.GitResourceType) {
-	var (
-		matchedAny bool = false
-	)
-
 	dir := core.GetTempDir(core.GetHash(url))
+	defer os.RemoveAll(dir) // Ensure directory is removed after processing
+
 	_, err := core.CloneRepository(session, url, ref, dir)
 
 	if err != nil {
 		session.Log.Debug("[%s] Cloning failed: %s", url, err.Error())
-		os.RemoveAll(dir)
 		return
 	}
 
 	session.Log.Debug("[%s] Cloning %s in to %s", url, ref, strings.Replace(dir, *session.Options.TempDirectory, "", -1))
-	matchedAny = checkSignatures(dir, url, stars, source)
-	if !matchedAny {
-		os.RemoveAll(dir)
-	}
+	checkSignatures(dir, url, stars, source)
+	
+	// Repository will be cleaned up by defer, regardless of whether matches were found
 }
 
 func checkSignatures(dir string, url string, stars int, source core.GitResourceType) (matchedAny bool) {
@@ -122,9 +111,8 @@ func checkSignatures(dir string, url string, stars int, source core.GitResourceT
 			relativeFileName = strings.Replace(file.Path, dir, "", -1)
 		}
 
-		if *session.Options.SearchQuery != "" {
-			queryRegex := regexp.MustCompile(*session.Options.SearchQuery)
-			for _, match := range queryRegex.FindAllSubmatch(file.Contents, -1) {
+		if session.SearchRegex != nil {
+			for _, match := range session.SearchRegex.FindAllSubmatch(file.Contents, -1) {
 				matches = append(matches, string(match[0]))
 			}
 
@@ -139,13 +127,32 @@ func checkSignatures(dir string, url string, stars int, source core.GitResourceT
 				if matched, part := signature.Match(file); matched {
 					if part == core.PartContents {
 						if matches = signature.GetContentsMatches(file.Contents); len(matches) > 0 {
-							count := len(matches)
-							m := strings.Join(matches, ", ")
-							publish(&MatchEvent{Source: source, Url: url, Matches: matches, Signature: signature.Name(), File: relativeFileName, Stars: stars})
-							matchedAny = true
+							// Filter out matches containing blacklisted strings and remove duplicates
+							filteredMatches := make([]string, 0)
+							seenMatches := make(map[string]bool)
+							for _, match := range matches {
+								shouldFilter := false
+								for _, blacklistedString := range session.Config.BlacklistedStrings {
+									if strings.Contains(strings.ToLower(match), strings.ToLower(blacklistedString)) {
+										shouldFilter = true
+										break
+									}
+								}
+								if !shouldFilter && !seenMatches[match] {
+									seenMatches[match] = true
+									filteredMatches = append(filteredMatches, match)
+								}
+							}
+							
+							if len(filteredMatches) > 0 {
+								count := len(filteredMatches)
+								m := strings.Join(filteredMatches, ", ")
+								publish(&MatchEvent{Source: source, Url: url, Matches: filteredMatches, Signature: signature.Name(), File: relativeFileName, Stars: stars})
+								matchedAny = true
 
-							session.Log.Important("[%s] %d %s for %s in file %s: %s", url, count, core.Pluralize(count, "match", "matches"), color.GreenString(signature.Name()), relativeFileName, color.YellowString(m))
-							session.WriteToCsv([]string{url, signature.Name(), relativeFileName, m})
+								session.Log.Important("[%s] %d %s for %s in file %s: %s", url, count, core.Pluralize(count, "match", "matches"), color.GreenString(signature.Name()), relativeFileName, color.YellowString(m))
+								session.WriteToCsv([]string{url, signature.Name(), relativeFileName, m})
+							}
 						}
 					} else {
 						if *session.Options.PathChecks {
@@ -175,11 +182,21 @@ func checkSignatures(dir string, url string, stars int, source core.GitResourceT
 										}
 
 										if !blacklistedMatch {
-											publish(&MatchEvent{Source: source, Url: url, Matches: []string{line}, Signature: "High entropy string", File: relativeFileName, Stars: stars})
+											// Check if this looks like an API key (contains "api" or "key" in context)
+											lineLower := strings.ToLower(line)
+											signatureName := "High entropy string"
+											
+											// If line contains "api" or "key" keywords, classify as "API Key"
+											if strings.Contains(lineLower, "api") || strings.Contains(lineLower, "key") || 
+											   strings.Contains(lineLower, "token") || strings.Contains(lineLower, "secret") {
+												signatureName = "API Key"
+											}
+											
+											publish(&MatchEvent{Source: source, Url: url, Matches: []string{line}, Signature: signatureName, File: relativeFileName, Stars: stars})
 											matchedAny = true
 
 											session.Log.Important("[%s] Potential secret in %s = %s", url, color.YellowString(relativeFileName), color.GreenString(line))
-											session.WriteToCsv([]string{url, "High entropy string", relativeFileName, line})
+											session.WriteToCsv([]string{url, signatureName, relativeFileName, line})
 										}
 									}
 								}
@@ -198,10 +215,43 @@ func checkSignatures(dir string, url string, stars int, source core.GitResourceT
 }
 
 func publish(event *MatchEvent) {
+	// Check if any match contains blacklisted strings
+	for _, blacklistedString := range session.Config.BlacklistedStrings {
+		// Check in Matches array
+		for _, match := range event.Matches {
+			if strings.Contains(strings.ToLower(match), strings.ToLower(blacklistedString)) {
+				return // Skip this event if it contains blacklisted string
+			}
+		}
+		// Check in File path
+		if strings.Contains(strings.ToLower(event.File), strings.ToLower(blacklistedString)) {
+			return // Skip this event if file path contains blacklisted string
+		}
+	}
+	
+	// Sanitize fields to prevent stored XSS when rendered in the frontend
+	sanitizedMatches := make([]string, len(event.Matches))
+	for i, match := range event.Matches {
+		sanitizedMatches[i] = html.EscapeString(match)
+	}
+	sanitizedEvent := &MatchEvent{
+		Url:       event.Url,
+		Matches:   sanitizedMatches,
+		Signature: html.EscapeString(event.Signature),
+		File:      html.EscapeString(event.File),
+		Stars:     event.Stars,
+		Source:    event.Source,
+	}
+
 	// todo: implement a modular plugin system to handle the various outputs (console, live, csv, webhooks, etc)
 	if len(*session.Options.Live) > 0 {
-		data, _ := json.Marshal(event)
-		http.Post(*session.Options.Live, "application/json", bytes.NewBuffer(data))
+		data, _ := json.Marshal(sanitizedEvent)
+		resp, err := http.Post(*session.Options.Live, "application/json", bytes.NewBuffer(data))
+		if err != nil {
+			session.Log.Warn("Failed to publish event: %s", err)
+			return
+		}
+		defer resp.Body.Close()
 	}
 }
 

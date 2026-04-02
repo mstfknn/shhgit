@@ -1,14 +1,20 @@
-FROM golang:alpine AS builder
-WORKDIR /go/src
+FROM golang:1.21-alpine AS builder
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
 COPY . .
 
-RUN export CGO_ENABLED=0 && go install && go build -o /
+RUN CGO_ENABLED=0 GOOS=linux go build -o /shhgit .
 
-FROM golang:alpine AS runtime
+FROM alpine:3.19 AS runtime
 WORKDIR /app
 
-RUN apk update && apk add --no-cache git
+RUN apk update && apk add --no-cache git ca-certificates && \
+    addgroup -S shhgit && adduser -S -G shhgit shhgit && \
+    mkdir -p /tmp/shhgit && chown shhgit:shhgit /tmp/shhgit
 
-COPY --from=builder /shhgit /app
+COPY --from=builder /shhgit /app/shhgit
+
+USER shhgit
 
 ENTRYPOINT [ "/app/shhgit" ]

@@ -1,122 +1,150 @@
 <!DOCTYPE html>
-<html> 
-    <head> 
+<html lang="en">
+    <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="color-scheme" content="light dark" />
+        <meta name="theme-color" content="#1e293b" />
 
         <title>shhgit: find secrets in real time across GitHub, GitLab and BitBucket</title>
-        <meta name="title" content="shhgit: find secrets in real time across GitHub, GitLab and BitBucket" />
-        <meta name="description" content="shhgit finds secrets and sensitive files across GitHub, GitLab and BitBucket code and Gists committed in near real time" />
-        <meta name="author" content="Paul Price (@darkp0r)" />
+        <meta name="description" content="shhgit finds secrets and sensitive files across GitHub, GitLab and BitBucket code and Gists committed in near real time." />
+        <meta name="author" content="Mustafa Kaan Demirhan (@mstfknn)" />
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href="https://github.com/mstfknn/shhgit" />
 
-        <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.5/css/bulma.min.css" />
-        <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/bulma-checkradio@1.1.1/dist/css/bulma-checkradio.min.css" />
-        <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.2/css/all.min.css" />
-        <link rel="stylesheet" type="text/css" href="/style.css" />
+        <!-- Open Graph -->
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="shhgit - Real-time Secret Scanner" />
+        <meta property="og:description" content="Find secrets across GitHub, GitLab and BitBucket in real time before they lead to a breach." />
+        <meta property="og:image" content="/logo.png" />
+
+        <!-- Preconnect to third-party origins -->
+        <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+        <!-- Critical CSS first -->
+        <link rel="stylesheet" href="/style.css" />
+
+        <!-- Third-party CSS with media hints -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl0HPNiecjHG182/lFXflzv5QKFP+dMPnO+VAwGM5sE+Yf0F9G2FxAdFAGTJ+kNfKfMcP6liwXwGA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+        <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
+        <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" /></noscript>
+
+        <!-- Favicon -->
+        <link rel="icon" type="image/png" href="/logo.png" />
     </head>
 
     <body>
-        <div class="columns is-gapless">
-            <div id="menu" class="column is-2 has-background-dark menu is-mobile">
-                <section class="section has-text-centered" style="padding: 1.5rem;">
-                    <a href="https://github.com/eth0izzle/shhgit/" target="_blank">
-                        <img src="/logo.png" width="50%" />
+        <!-- Skip to main content for keyboard/screen reader users -->
+        <a href="#messages-wrapper" class="skip-link">Skip to main content</a>
+
+        <div class="app-container">
+            <aside id="menu" class="sidebar" role="complementary" aria-label="Signatures sidebar">
+                <div class="sidebar-header">
+                    <a href="https://github.com/mstfknn/shhgit" target="_blank" rel="noopener noreferrer" class="logo-link" aria-label="shhgit on GitHub">
+                        <img src="/logo.png" alt="shhgit logo" class="logo" width="168" height="168" loading="eager" />
                     </a>
 
-                    <h1 class="title is-4 has-text-weight-bold has-text-white has-text-centered">
-                        shhgit <span class="is-size-5 has-text-primary has-text-weight-light">live!</span>
-                        <span class="tag is-dark">v0.4</span>
-                    </h1>
-
-                    <span id="matches-count" class="tag is-small">
-                        <span>0 matches</span>
-                    </span>
-                    <span id="filters-count" class="tag is-info is-small">
-                        <span>0 filters</span>
-                        <button class="delete is-small" id="filters-clear"></button>
-                    </span>
-                </section>
-
-                <ul class="menu-list" id="signatures"></ul>  
-            </div>
-
-            <div class="column">
-                <nav class="navbar has-background-grey-darker">
-                    <div class="navbar-menu">
-                        <div class="navbar-start">
-                            <div class="navbar-item">
-                                <div class="field">
-                                    <input class="is-checkradio is-white" id="setting-interesting-files" type="checkbox" name="setting-interesting-files" checked="checked" />
-                                    <label for="setting-interesting-files" class="has-text-white">Interesting file extensions</label>
-
-                                    <input class="is-checkradio is-white" id="setting-high-entropy-strings" type="checkbox" name="setting-high-entropy-strings" checked="checked" />
-                                    <label for="setting-high-entropy-strings" class="has-text-white">High entropy strings</label>
-
-                                    <input class="is-checkradio is-white" id="setting-notifications" type="checkbox" name="notifications" />
-                                    <label for="setting-notifications" class="has-text-white">Notify on match</label>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="app-title">
+                        <h1 class="title-text">
+                            shhgit <span class="live-badge" aria-label="Live scanning active">live!</span>
+                        </h1>
+                        <span class="version-badge">v0.5</span>
                     </div>
-                </nav>
 
-                <div style="position:absolute;top:0;right:0;width:320px;z-index:100;margin-top:12px;">
-                    <a href="https://github.com/eth0izzle/shhgit/" target="_blank" title="View shhgit on GitHub!" class="button is-small"  style="margin-right:5px;">
-                        <span class="icon is-small">
-                            <i class="fab fa-lg fa-github"></i>
-                        </span>
-                        <span>shhgit</span>
-                    </a>
-
-                    <a href="https://www.twitter.com/darkp0rt" target="_blank" class="button is-info is-small" style="margin-right:5px;">
-                        <span class="icon is-small">
-                            <i class="fab fa-twitter"></i>
-                        </span>
-                        <span>@darkp0rt</span>
-                    </a>
-
-                    <a href="https://github.com/sponsors/eth0izzle" target="_blank" class="button is-link is-small" style="margin-right:5px;">
-                        <span class="icon is-small">
-                            <i class="fas fa-heart"></i>
-                        </span>
-                        <span>sponsor</span>
-                    </a>
-
-                    <span id="connection-status" class="button is-outlined is-size-7">Connecting...</span>
-
-                    <div class="mobile-burger burger is-hidden-desktop" data-target="menu" id="burger">
-                        <span></span>
-                        <span></span>
-                        <span></span>
+                    <div class="stats-container" role="status" aria-live="polite">
+                        <div class="stat-item">
+                            <i class="fas fa-shield-alt" aria-hidden="true"></i>
+                            <span id="matches-count">0 matches</span>
+                        </div>
+                        <div class="stat-item stat-filters">
+                            <i class="fas fa-filter" aria-hidden="true"></i>
+                            <span id="filters-count">0 filters</span>
+                            <button class="delete-btn" id="filters-clear" title="Clear all filters" aria-label="Clear all filters">
+                                <i class="fas fa-times" aria-hidden="true"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <section class="section is-fluid" style="margin-top: 25px;">
-                    <div id="messages-wrapper">
-                        <table class="table is-fullwidth is-hoverable is-striped">
-                            <thead>
-                                <tr>
-                                    <th class="source"></th>
-                                    <th class="found">Found</th>
-                                    <th class="signature-name">Signature Name</th>
-                                    <th class="matches">Matches</th>
-                                    <th class="file-url">File</th>
-                                    <th class="stars" title="Repository star gazers"><span class="icon is-small"><i class="fas fa-star"></i></span></th>
-                                </tr>
-                            </thead>
-                            <tbody id="messages"></tbody>
-                        </table>
+                <nav class="sidebar-content" aria-label="Signature filters">
+                    <div class="signatures-header">
+                        <i class="fas fa-list" aria-hidden="true"></i>
+                        <span>Signatures</span>
+                    </div>
+                    <ul class="menu-list" id="signatures" role="listbox" aria-label="Filter by signature type"></ul>
+                </nav>
+            </aside>
 
-                        <div id="loading" class="container has-text-centered">
-                            <a class="button is-loading is-info">Loading</a>
+            <main class="main-content" id="main">
+                <header class="top-bar">
+                    <div class="top-bar-left">
+                        <fieldset class="settings-group">
+                            <legend class="sr-only">Display settings</legend>
+                            <label class="checkbox-label">
+                                <input class="is-checkradio" id="setting-interesting-files" type="checkbox" name="setting-interesting-files" checked="checked" />
+                                <span>Interesting file extensions</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input class="is-checkradio" id="setting-high-entropy-strings" type="checkbox" name="setting-high-entropy-strings" checked="checked" />
+                                <span>High entropy strings</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input class="is-checkradio" id="setting-notifications" type="checkbox" name="notifications" />
+                                <span>Notify on match</span>
+                            </label>
+                        </fieldset>
+                    </div>
+                    <div class="top-bar-right">
+                        <span id="connection-status" class="connection-badge" role="status" aria-live="polite">
+                            <i class="fas fa-circle" aria-hidden="true"></i>
+                            <span>Connecting...</span>
+                        </span>
+                        <button class="mobile-menu-toggle" id="burger" aria-label="Toggle sidebar menu" aria-expanded="false" aria-controls="menu">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </button>
+                    </div>
+                </header>
+
+                <div class="content-wrapper">
+                    <div id="messages-wrapper">
+                        <div class="table-container">
+                            <table class="modern-table" aria-label="Discovered secrets">
+                                <thead>
+                                    <tr>
+                                        <th class="col-source" scope="col"><i class="fas fa-globe" aria-hidden="true"></i><span class="sr-only">Source</span></th>
+                                        <th class="col-found" scope="col"><i class="fas fa-clock" aria-hidden="true"></i> Found</th>
+                                        <th class="col-signature" scope="col"><i class="fas fa-tag" aria-hidden="true"></i> Signature</th>
+                                        <th class="col-matches" scope="col"><i class="fas fa-key" aria-hidden="true"></i> Matches</th>
+                                        <th class="col-file" scope="col"><i class="fas fa-file" aria-hidden="true"></i> File</th>
+                                        <th class="col-stars" scope="col" title="Repository stars"><i class="fas fa-star" aria-hidden="true"></i><span class="sr-only">Stars</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="messages"></tbody>
+                            </table>
+                        </div>
+
+                        <!-- Empty state -->
+                        <div id="empty-state" class="empty-state">
+                            <i class="fas fa-search" aria-hidden="true"></i>
+                            <h2>Scanning for secrets...</h2>
+                            <p>Matches will appear here as they are discovered in real time.</p>
+                        </div>
+
+                        <div id="loading" class="loading-state show" role="status" aria-label="Loading">
+                            <div class="spinner" aria-hidden="true"></div>
                             <p>Waiting for events...</p>
                         </div>
                     </div>
-                </section>
-            </div>
+                </div>
+            </main>
         </div>
 
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.min.js"></script>
-        <script type="text/javascript" src="/script.js"></script>
+        <!-- Scripts deferred for performance -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.min.js" integrity="sha512-FLHbpiYSBOTKtG/4wHY88+5mMsDbxOBKO0FJKm5jGBNnDnic6ZhqBSMOYmVDIkMHEFXKPDJVDjN8BIjK9kxIg==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+        <script src="/script.js" defer></script>
     </body>
 </html>

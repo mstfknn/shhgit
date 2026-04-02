@@ -2,8 +2,8 @@ package core
 
 const (
 	Name    = "shhgit"
-	Version = "0.4"
-	Author  = "Paul Price (@darkp0rt) - www.darkport.co.uk"
+	Version = "0.5"
+	Author  = "Mustafa Kaan Demirhan (@mstfknn) - github.com/mstfknn/shhgit"
 )
 
 const Banner = `

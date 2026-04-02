@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 )
 
 type GitResourceType int
@@ -39,6 +39,7 @@ func CloneRepository(session *Session, url string, ref string, dir string) (*git
 		URL:               url,
 		SingleBranch:      true,
 		Tags:              git.NoTags,
+		Progress:          nil,
 	}
 
 	if ref != "" {
