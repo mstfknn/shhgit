@@ -399,7 +399,7 @@ signatures:
     name: 'Amazon MWS Auth Token'
   - part:  'contents'
     regex: 'SK[0-9a-fA-F]{32}'
-    name: 'Twilo API Key'
+    name: 'Twilio API Key (short format)'
   - part:  'contents'
     regex: 'SG\.[0-9A-Za-z\-_]{22}\.[0-9A-Za-z\-_]{43}'
     name: 'SendGrid API Key'
@@ -548,9 +548,7 @@ signatures:
   - part: 'contents'
     regex: "(?i)[\\w.-]{0,50}?(?:airtable)(?:[ \\t\\w.-]{0,20})[\\s'\"]{0,3}(?:=|>|:{1,3}=|\\|\\||:|=>|\\?=|,)[\\x60'\"\\s=]{0,5}([a-z0-9]{17})(?:[\\x60'\"\\s;]|\\\\[nr]|$)"
     name: 'Airtable API Key'
-  - part: 'contents'
-    regex: "SK[0-9a-fA-F]{32}"
-    name: 'Twilio API Key'
+  # Twilio duplicate removed (covered by 'Twilio API Key (short format)' above)
   - part: 'contents'
     regex: "(?i)[\\w.-]{0,50}?(?:twitter)(?:[ \\t\\w.-]{0,20})[\\s'\"]{0,3}(?:=|>|:{1,3}=|\\|\\||:|=>|\\?=|,)[\\x60'\"\\s=]{0,5}([a-z0-9]{25})(?:[\\x60'\"\\s;]|\\\\[nr]|$)"
     name: 'Twitter API Key'
@@ -632,10 +630,10 @@ signatures:
     name: 'Telegram Bot Token'
   # OAuth & JWT
   - part: 'contents'
-    regex: "(?i)client_secret['\"\\s:=]+[a-zA-Z0-9\\-_.~]{10,100}"
+    regex: "(?i)client_secret['\"\\s:=]+[a-zA-Z0-9\\-_.~]{20,100}"
     name: 'OAuth Client Secret'
   - part: 'contents'
-    regex: "(?i)client_id['\"\\s:=]+[a-zA-Z0-9\\-_.~]{10,100}"
+    regex: "(?i)client_id['\"\\s:=]+[a-zA-Z0-9\\-_.~]{30,100}"
     name: 'OAuth Client ID'
   - part: 'contents'
     regex: "eyJ[A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+/=]*"
@@ -811,13 +809,13 @@ signatures:
     regex: "-----BEGIN PGP PRIVATE KEY BLOCK-----"
     name: 'PGP Private Key Block'
   - part: 'contents'
-    regex: "['\"][A-Za-z0-9+/]{40,}={0,2}['\"]"
+    regex: "['\"][A-Za-z0-9+/]{60,}={0,2}['\"]"
     name: 'Base64 High Entropy String'
   - part: 'contents'
     regex: "(?i)authorization:\\s*Bearer\\s+[a-zA-Z0-9\\-._~+/]+=*"
     name: 'Authorization Bearer Token'
   - part: 'contents'
-    regex: "(?i)(sessionid|session_id)['\"\\s:=]+[a-zA-Z0-9]{10,}"
+    regex: "(?i)(sessionid|session_id)['\"\\s:=]+[a-zA-Z0-9]{20,}"
     name: 'Session ID'
   - part: 'contents'
     regex: "(?i)set-cookie:\\s*[a-zA-Z0-9_-]+="
@@ -828,3 +826,129 @@ signatures:
   - part: 'contents'
     regex: "localStorage\\.setItem\\(['\"]token['\"],\\s*['\"]eyJ[a-zA-Z0-9-_]+\\.[a-zA-Z0-9-_]+\\.[a-zA-Z0-9-_]+['\"]\\)"
     name: 'JWT in Local Storage'
+
+  # ============================================================
+  # GitHub Token Variants (missing from original)
+  # ============================================================
+  - part: 'contents'
+    regex: "ghu_[a-zA-Z0-9]{36}"
+    name: 'GitHub User-to-Server Token'
+  - part: 'contents'
+    regex: "ghs_[a-zA-Z0-9]{36}"
+    name: 'GitHub Server-to-Server Token'
+  - part: 'contents'
+    regex: "gho_[a-zA-Z0-9]{36}"
+    name: 'GitHub OAuth Access Token'
+  - part: 'contents'
+    regex: "ghr_[a-zA-Z0-9]{36}"
+    name: 'GitHub Refresh Token'
+
+  # ============================================================
+  # Modern Cloud & DevOps Services (2024-2025)
+  # ============================================================
+  - part: 'contents'
+    regex: "vercel_[a-zA-Z0-9]{24}"
+    name: 'Vercel Personal Access Token'
+  - part: 'contents'
+    regex: "sbp_[a-f0-9]{40}"
+    name: 'Supabase Personal Access Token'
+  - part: 'contents'
+    regex: "pscale_(tkn|pw|oauth)_[a-zA-Z0-9_\\-]{32,64}"
+    name: 'PlanetScale Token'
+  - part: 'contents'
+    regex: "turso_[a-zA-Z0-9_\\-]{30,}"
+    name: 'Turso Database Token'
+  - part: 'contents'
+    regex: "fo1_[a-zA-Z0-9_-]{40,}"
+    name: 'Fly.io API Token'
+  - part: 'contents'
+    regex: "rwy_[a-zA-Z0-9]{32,}"
+    name: 'Railway Project Token'
+  - part: 'contents'
+    regex: "cf_[a-zA-Z0-9_-]{37,40}"
+    name: 'Cloudflare API Token'
+  - part: 'contents'
+    regex: "v1\\.0-[a-f0-9]{24}-[a-f0-9]{146}"
+    name: 'Cloudflare Origin CA Key'
+  - part: 'contents'
+    regex: "postgres(ql)?://[^:]+:[^@]+@[^.]+\\.neon\\.tech"
+    name: 'Neon Database Connection String'
+
+  # ============================================================
+  # AI/ML API Keys (newer formats)
+  # ============================================================
+  - part: 'contents'
+    regex: "sk-svcacct-[a-zA-Z0-9\\-_]{48,180}"
+    name: 'OpenAI Service Account Key'
+  - part: 'contents'
+    regex: "xai-[a-zA-Z0-9]{48,}"
+    name: 'xAI/Grok API Key'
+
+  # ============================================================
+  # Developer Tools & Package Registries
+  # ============================================================
+  - part: 'contents'
+    regex: "npm_[a-zA-Z0-9]{36}"
+    name: 'npm Access Token'
+  - part: 'contents'
+    regex: "pypi-AgEIcHlwaS5vcmc[a-zA-Z0-9\\-_]{50,}"
+    name: 'PyPI API Token'
+  - part: 'contents'
+    regex: "rubygems_[a-f0-9]{48}"
+    name: 'RubyGems API Key'
+  - part: 'contents'
+    regex: "PMAK-[a-f0-9]{24}-[a-f0-9]{34}"
+    name: 'Postman API Key'
+  - part: 'contents'
+    regex: "pul-[a-f0-9]{40}"
+    name: 'Pulumi Access Token'
+  - part: 'contents'
+    regex: "dapi[a-f0-9]{32}"
+    name: 'Databricks API Token'
+  - part: 'contents'
+    regex: "figd_[a-zA-Z0-9_-]{40,}"
+    name: 'Figma Personal Access Token'
+  - part: 'contents'
+    regex: "sgp_[a-fA-F0-9]{40}"
+    name: 'Sourcegraph Access Token'
+
+  # ============================================================
+  # Monitoring & Observability
+  # ============================================================
+  - part: 'contents'
+    regex: "glc_[a-zA-Z0-9+/]{32,}"
+    name: 'Grafana Cloud Token'
+  - part: 'contents'
+    regex: "glsa_[a-zA-Z0-9]{32}_[a-f0-9]{8}"
+    name: 'Grafana Service Account Token'
+  - part: 'contents'
+    regex: "dp\\.st\\.[a-z0-9_-]+\\.[a-zA-Z0-9]{40,44}"
+    name: 'Doppler Service Token'
+
+  # ============================================================
+  # Infrastructure & Auth
+  # ============================================================
+  - part: 'contents'
+    regex: "[a-z0-9]{14}\\.atlasv1\\.[a-z0-9]{60,70}"
+    name: 'Terraform Cloud/Enterprise Token'
+  - part: 'contents'
+    regex: "tskey-(api|auth)-[a-zA-Z0-9]+-[a-zA-Z0-9]+"
+    name: 'Tailscale API/Auth Key'
+  - part: 'contents'
+    regex: "ddp_[a-zA-Z0-9]{40}"
+    name: 'Deno Deploy Token'
+  - part: 'contents'
+    regex: "re_[a-zA-Z0-9]{30,40}"
+    name: 'Resend API Key'
+  - part: 'contents'
+    regex: "ico-[a-zA-Z0-9]{32}"
+    name: 'Infracost API Key'
+  - part: 'contents'
+    regex: "pnu_[a-z0-9]{36}"
+    name: 'Prefect API Key'
+  - part: 'contents'
+    regex: "bkua_[a-f0-9]{40}"
+    name: 'Buildkite Agent Token'
+  - part: 'contents'
+    regex: "bkp_[a-f0-9]{40}"
+    name: 'Buildkite API Token'
